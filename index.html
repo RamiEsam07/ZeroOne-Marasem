@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZEROONE MARASEM — Premium Digital Invitations</title>
+
+    <!-- Production security headers (see also firebase.json hosting.headers for
+         X-Content-Type-Options / Permissions-Policy, which can't be set via
+         <meta> and must be configured at the hosting layer) -->
+    <!-- NOTE: script-src includes 'unsafe-inline' because the current UI uses
+         inline onclick="" handlers extensively (e.g. dispatchWhatsAppById()).
+         This is required for the app to keep working as-is; it does weaken
+         CSP's protection against injected inline scripts. Removing it is a
+         larger refactor (every onclick="" -> addEventListener) — see the
+         Production Readiness Report "Remaining" section. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; media-src 'self'; connect-src https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.emailjs.com; frame-src 'none'; object-src 'none';">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ivory: '#F7F3EA',
+                        'warm-ivory': '#EEE8DC',
+                        espresso: '#211C17',
+                        taupe: '#8D8272',
+                        'muted-gold': '#B89B5E'
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                        garamond: ['Cormorant Garamond', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-ivory text-espresso font-cairo antialiased selection:bg-muted-gold selection:text-white min-h-screen flex flex-col">
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed top-5 left-5 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- Navigation Header -->
+    <header class="border-b border-taupe/20 bg-ivory/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl font-garamond tracking-widest text-espresso font-bold">ZEROONE</span>
+                <span class="text-xs uppercase tracking-widest px-2 py-0.5 border border-muted-gold/40 text-muted-gold font-garamond">MARASEM</span>
+            </div>
+
+            <!-- Tab Navigation -->
+            <nav class="hidden md:flex items-center gap-1 bg-warm-ivory/50 p-1 border border-taupe/15 rounded-full">
+                <button data-requires="manageGuests" onclick="switchTab('create')" id="tab-btn-create" class="nav-tab active-tab px-5 py-2 text-sm font-medium rounded-full transition-all duration-300">
+                    <i class="fa-solid fa-pen-nib text-xs ml-1.5"></i> إنشاء دعوة
+                </button>
+                <button data-requires="delivery" onclick="switchTab('delivery')" id="tab-btn-delivery" class="nav-tab px-5 py-2 text-sm font-medium rounded-full transition-all duration-300">
+                    <i class="fa-solid fa-paper-plane text-xs ml-1.5"></i> مركز التسليم
+                </button>
+                <button data-requires="checkin" onclick="switchTab('checkin')" id="tab-btn-checkin" class="nav-tab px-5 py-2 text-sm font-medium rounded-full transition-all duration-300">
+                    <i class="fa-solid fa-qrcode text-xs ml-1.5"></i> Check-in
+                </button>
+                <button data-requires="analytics" onclick="switchTab('analytics')" id="tab-btn-analytics" class="nav-tab px-5 py-2 text-sm font-medium rounded-full transition-all duration-300">
+                    <i class="fa-solid fa-chart-pie text-xs ml-1.5"></i> الإحصائيات
+                </button>
+            </nav>
+
+            <div class="hidden lg:flex items-center gap-3">
+                <span id="admin-name-label" class="text-xs text-taupe tracking-wider font-garamond"></span>
+                <button onclick="handleLogout()" title="تسجيل الخروج" class="text-taupe hover:text-rose-700 transition-colors">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation -->
+        <div class="md:hidden flex border-t border-taupe/10 bg-warm-ivory/30 px-2 py-2 overflow-x-auto justify-around items-center">
+            <button data-requires="manageGuests" onclick="switchTab('create')" id="mobile-tab-btn-create" class="text-xs py-1.5 px-3 rounded text-espresso">إنشاء</button>
+            <button data-requires="delivery" onclick="switchTab('delivery')" id="mobile-tab-btn-delivery" class="text-xs py-1.5 px-3 rounded text-taupe">التسليم</button>
+            <button data-requires="checkin" onclick="switchTab('checkin')" id="mobile-tab-btn-checkin" class="text-xs py-1.5 px-3 rounded text-taupe">الوصول</button>
+            <button data-requires="analytics" onclick="switchTab('analytics')" id="mobile-tab-btn-analytics" class="text-xs py-1.5 px-3 rounded text-taupe">التحليلات</button>
+            <button onclick="handleLogout()" class="text-xs py-1.5 px-3 rounded text-rose-700"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
+
+        <!-- Metrics Dashboard Bar -->
+        <section id="metrics-bar" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
+            <div class="bg-warm-ivory/40 border border-taupe/20 p-4 rounded bg-gradient-to-br from-warm-ivory/60 to-ivory">
+                <p class="text-xs text-taupe font-semibold tracking-wider uppercase">إجمالي الدعوات</p>
+                <p id="stat-total" class="text-2xl font-garamond font-bold text-espresso mt-1">0</p>
+            </div>
+            <div class="bg-warm-ivory/40 border border-taupe/20 p-4 rounded bg-gradient-to-br from-warm-ivory/60 to-ivory">
+                <p class="text-xs text-taupe font-semibold tracking-wider uppercase">تم الإرسال المؤكد</p>
+                <p id="stat-delivered" class="text-2xl font-garamond font-bold text-muted-gold mt-1">0</p>
+            </div>
+            <div class="bg-warm-ivory/40 border border-taupe/20 p-4 rounded bg-gradient-to-br from-warm-ivory/60 to-ivory">
+                <p class="text-xs text-taupe font-semibold tracking-wider uppercase">تم الفتح</p>
+                <p id="stat-opened" class="text-2xl font-garamond font-bold text-espresso mt-1">0</p>
+            </div>
+            <div class="bg-warm-ivory/40 border border-taupe/20 p-4 rounded bg-gradient-to-br from-warm-ivory/60 to-ivory">
+                <p class="text-xs text-taupe font-semibold tracking-wider uppercase">مؤكد الحضور (RSVP)</p>
+                <p id="stat-confirmed" class="text-2xl font-garamond font-bold text-emerald-800 mt-1">0</p>
+            </div>
+            <div class="bg-warm-ivory/40 border border-taupe/20 p-4 rounded col-span-2 md:col-span-1 bg-gradient-to-br from-warm-ivory/60 to-ivory">
+                <p class="text-xs text-taupe font-semibold tracking-wider uppercase">تم الدخول (Check-in)</p>
+                <p id="stat-checkedin" class="text-2xl font-garamond font-bold text-espresso mt-1">0</p>
+            </div>
+        </section>
+
+        <!-- TAB 1: CREATE INVITATION -->
+        <section id="sec-create" class="tab-content transition-opacity duration-300">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Form Column -->
+                <div class="lg:col-span-7 bg-warm-ivory/30 border border-taupe/20 p-6 sm:p-8 rounded-lg shadow-sm">
+                    <div class="border-b border-taupe/20 pb-4 mb-6">
+                        <h2 class="text-xl font-garamond font-bold text-espresso">إنشاء تجربة دعوة جديدة</h2>
+                        <p class="text-xs text-taupe mt-1">أدخل بيانات الضيف والمناسبة لتوليد رابط دعوة مخصص وفاخر.</p>
+                    </div>
+
+                    <form id="create-invitation-form" onsubmit="handleCreateInvitation(event)" class="space-y-5">
+                        
+                        <!-- Guest Info Sub-section -->
+                        <div class="space-y-4">
+                            <h3 class="text-xs font-semibold tracking-wider text-muted-gold uppercase">بيانات الضيف</h3>
+                            
+                            <div>
+                                <label class="block text-xs font-medium text-espresso mb-1">اسم المدعو الكريم *</label>
+                                <input type="text" id="field-name" required oninput="updateLivePreview()" placeholder="مثال: سعادة الدكتور أحمد السليمان" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-espresso mb-1">رقم WhatsApp (صيغة دولية) *</label>
+                                    <input type="text" id="field-phone" required placeholder="مثال: 249912934169" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-espresso mb-1">البريد الإلكتروني</label>
+                                    <input type="email" id="field-email" placeholder="guest@domain.com" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-espresso mb-1">نوع الدعوة *</label>
+                                    <select id="field-type" onchange="updateLivePreview()" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                                        <option value="Standard">Standard</option>
+                                        <option value="VIP" selected>VIP</option>
+                                        <option value="Executive">Executive</option>
+                                        <option value="Guest of Honor">Guest of Honor</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-espresso mb-1">ستايل الدعوة *</label>
+                                    <select id="field-style" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                                        <option value="Elegant Classic">Elegant Classic</option>
+                                        <option value="VIP Prestige">VIP Prestige</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Event Details Sub-section -->
+                        <div class="space-y-4 pt-4 border-t border-taupe/15">
+                            <h3 class="text-xs font-semibold tracking-wider text-muted-gold uppercase">تفاصيل المناسبة</h3>
+
+                            <div>
+                                <label class="block text-xs font-medium text-espresso mb-1">اسم المناسبة *</label>
+                                <input type="text" id="field-event-name" required oninput="updateLivePreview()" placeholder="مثال: حفل العشاء السنوي لشركة الأفق" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-espresso mb-1">التاريخ *</label>
+                                    <input type="text" id="field-event-date" required oninput="updateLivePreview()" placeholder="مثال: الخميس، 15 نوفمبر 2026" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-espresso mb-1">الوقت *</label>
+                                    <input type="text" id="field-event-time" required oninput="updateLivePreview()" placeholder="مثال: 08:00 مساءً" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-espresso mb-1">المكان / القاعة *</label>
+                                    <input type="text" id="field-venue" required oninput="updateLivePreview()" placeholder="مثال: فندق الريتز كارلتون - القاعة الكبرى" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-espresso mb-1">رابط الخريطة (Google Maps)</label>
+                                    <input type="url" id="field-location-url" placeholder="https://maps.google.com/..." class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-espresso mb-1">رقم الطاولة / التخصيص</label>
+                                    <input type="text" id="field-table" oninput="updateLivePreview()" placeholder="مثال: الطاولة الرئيسية رقم 01" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-espresso mb-1">بيانات الموقف (Parking)</label>
+                                    <input type="text" id="field-parking" placeholder="مثال: خدمة الفاليت - بوابه A" class="w-full bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold transition-colors">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Submit -->
+                        <div class="pt-6 border-t border-taupe/15">
+                            <button type="submit" id="btn-submit-invitation" class="w-full bg-espresso text-ivory py-3.5 px-6 rounded font-medium hover:bg-muted-gold hover:text-espresso transition-all duration-300 flex items-center justify-center gap-2">
+                                <span>إنشاء تجربة الدعوة ✦</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Live Preview Column -->
+                <div class="lg:col-span-5 sticky top-28">
+                    <div class="bg-espresso text-ivory p-8 rounded-lg border border-muted-gold/30 shadow-xl relative overflow-hidden text-center">
+                        <!-- Decorative Frame Borders -->
+                        <div class="absolute inset-3 border border-muted-gold/20 pointer-events-none"></div>
+
+                        <div class="relative z-10 py-6 space-y-6">
+                            <div class="text-xs uppercase tracking-[0.3em] text-muted-gold font-garamond">
+                                ZEROONE MARASEM
+                            </div>
+
+                            <div class="w-8 h-px bg-muted-gold/40 mx-auto"></div>
+
+                            <span id="prev-type" class="inline-block px-3 py-1 text-[10px] tracking-widest border border-muted-gold/40 text-muted-gold uppercase">
+                                VIP
+                            </span>
+
+                            <div class="space-y-1">
+                                <p class="text-xs text-taupe font-garamond italic">دعوة خاصة إلى</p>
+                                <h3 id="prev-name" class="text-xl font-garamond text-ivory font-semibold min-h-[1.75rem]">
+                                    [اسم المدعو]
+                                </h3>
+                            </div>
+
+                            <p id="prev-event" class="text-sm font-medium text-warm-ivory px-4">
+                                [اسم المناسبة]
+                            </p>
+
+                            <div class="border-y border-taupe/20 py-4 my-4 space-y-2 text-xs text-taupe">
+                                <p id="prev-date">[التاريخ]</p>
+                                <p id="prev-time">[الوقت]</p>
+                                <p id="prev-venue" class="text-warm-ivory font-medium">[المكان]</p>
+                            </div>
+
+                            <div id="prev-table" class="text-xs text-muted-gold">
+                                [رقم الطاولة]
+                            </div>
+
+                            <div class="pt-2">
+                                <span class="text-[10px] text-taupe tracking-wider block">معاينة فورية حية</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 2: DELIVERY CENTER -->
+        <section id="sec-delivery" class="tab-content hidden transition-opacity duration-300">
+            
+            <!-- Controls Filter Bar -->
+            <div class="bg-warm-ivory/30 border border-taupe/20 p-4 rounded-lg mb-6 space-y-4">
+                <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <!-- Search Input -->
+                    <div class="relative w-full md:w-80">
+                        <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-taupe text-sm"></i>
+                        <input type="text" id="delivery-search" oninput="applyFiltersAndRender()" placeholder="بحث باسم الضيف، الهاتف..." class="w-full pr-9 pl-4 py-2 bg-ivory border border-taupe/30 rounded text-xs focus:outline-none focus:border-muted-gold">
+                    </div>
+
+                    <!-- Filter Options -->
+                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                        <select id="filter-type" onchange="applyFiltersAndRender()" class="bg-ivory border border-taupe/30 py-2 px-3 rounded text-xs focus:outline-none">
+                            <option value="ALL">جميع الفئات</option>
+                            <option value="VIP">VIP</option>
+                            <option value="Executive">Executive</option>
+                            <option value="Standard">Standard</option>
+                            <option value="Guest of Honor">Guest of Honor</option>
+                        </select>
+
+                        <select id="filter-status" onchange="applyFiltersAndRender()" class="bg-ivory border border-taupe/30 py-2 px-3 rounded text-xs focus:outline-none">
+                            <option value="ALL">جميع الحالات</option>
+                            <option value="DELIVERED">تم التسليم</option>
+                            <option value="NOT_DELIVERED">لم يتم التسليم</option>
+                            <option value="CONFIRMED">مؤكد (RSVP)</option>
+                            <option value="CHECKED_IN">وصل (Check-in)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guest Cards Delivery Grid -->
+            <div id="delivery-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamic Guest Cards Injected Here -->
+            </div>
+
+            <!-- Guest Table List Alternative View (desktop only — the cards
+                 above already serve as the mobile-first view, per the
+                 "tables become cards on small screens" requirement) -->
+            <div class="hidden sm:block mt-12 bg-warm-ivory/20 border border-taupe/20 rounded-lg overflow-hidden">
+                <div class="p-4 border-b border-taupe/20 bg-warm-ivory/40 flex justify-between items-center">
+                    <h3 class="font-garamond font-bold text-lg text-espresso">سجل جميع المدعوين</h3>
+                    <span id="records-count" class="text-xs text-taupe">0 دعوة</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-xs">
+                        <thead class="bg-warm-ivory/60 border-b border-taupe/20 text-taupe uppercase tracking-wider">
+                            <tr>
+                                <th class="p-3">الضيف</th>
+                                <th class="p-3">الهاتف</th>
+                                <th class="p-3">الفئة</th>
+                                <th class="p-3">التسليم</th>
+                                <th class="p-3">الفتح</th>
+                                <th class="p-3">RSVP</th>
+                                <th class="p-3">الوصول</th>
+                                <th class="p-3 text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="guests-table-body" class="divide-y divide-taupe/10 bg-ivory/40">
+                            <!-- Dynamic Table Rows -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-4 text-center">
+                    <button id="load-more-guests" onclick="loadMoreGuests()" class="hidden text-xs px-4 py-2 border border-taupe/30 rounded hover:bg-warm-ivory transition-colors">
+                        تحميل المزيد
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: CHECK-IN PORTAL -->
+        <section id="sec-checkin" class="tab-content hidden transition-opacity duration-300">
+            <div class="max-w-xl mx-auto bg-warm-ivory/30 border border-taupe/20 p-8 rounded-lg shadow-sm">
+                <div class="text-center mb-6">
+                    <div class="w-12 h-12 rounded-full bg-muted-gold/10 border border-muted-gold/30 flex items-center justify-center mx-auto mb-3 text-muted-gold">
+                        <i class="fa-solid fa-qrcode text-xl"></i>
+                    </div>
+                    <h2 class="text-xl font-garamond font-bold text-espresso">بوابة واعتماد الوصول (Check-in)</h2>
+                    <p class="text-xs text-taupe mt-1">قم بالبحث بواسطة ID الدعوة أو رقم هاتف الضيف لتسجيل الدخول الفوري.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex gap-2">
+                        <input type="text" id="checkin-search-input" placeholder="اسم الضيف، رقم الهاتف أو رمز الدعوة..." class="flex-grow bg-ivory border border-taupe/30 px-4 py-2.5 rounded text-sm focus:outline-none focus:border-muted-gold">
+                        <button onclick="performCheckinSearch()" class="bg-espresso text-ivory px-5 py-2.5 rounded text-sm hover:bg-muted-gold hover:text-espresso transition-colors">
+                            بحث
+                        </button>
+                    </div>
+
+                    <div class="text-center">
+                        <span class="text-[10px] text-taupe tracking-widest uppercase">— أو —</span>
+                    </div>
+
+                    <!-- QR Scanner -->
+                    <div id="qr-reader" class="w-full max-w-xs mx-auto rounded-lg overflow-hidden border border-taupe/20"></div>
+                    <p class="text-center text-[11px] text-taupe">وجّه الكاميرا نحو رمز QR الخاص بدعوة الضيف</p>
+
+                    <!-- Result Container -->
+                    <div id="checkin-result" class="hidden mt-6 bg-ivory border border-taupe/20 p-6 rounded space-y-4">
+                        <!-- Dynamic Checkin Card -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: ANALYTICS -->
+        <section id="sec-analytics" class="tab-content hidden transition-opacity duration-300">
+            <div class="bg-warm-ivory/30 border border-taupe/20 p-8 rounded-lg">
+                <h2 class="text-xl font-garamond font-bold text-espresso mb-6">تحليلات الدعوات المتقدمة</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Funnel Overview -->
+                    <div class="bg-ivory p-6 border border-taupe/20 rounded space-y-4">
+                        <h4 class="text-xs uppercase font-semibold text-muted-gold tracking-wider">معدل التفاعل</h4>
+                        <div class="space-y-3 text-xs">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span>نسبة التسليم</span>
+                                    <span id="rate-delivery">0%</span>
+                                </div>
+                                <div class="w-full bg-warm-ivory h-2 rounded-full overflow-hidden">
+                                    <div id="bar-delivery" class="bg-muted-gold h-full w-0 transition-all duration-500"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span>نسبة الفتح</span>
+                                    <span id="rate-open">0%</span>
+                                </div>
+                                <div class="w-full bg-warm-ivory h-2 rounded-full overflow-hidden">
+                                    <div id="bar-open" class="bg-espresso h-full w-0 transition-all duration-500"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span>معدل تأكيد الحضور (RSVP)</span>
+                                    <span id="rate-rsvp">0%</span>
+                                </div>
+                                <div class="w-full bg-warm-ivory h-2 rounded-full overflow-hidden">
+                                    <div id="bar-rsvp" class="bg-emerald-700 h-full w-0 transition-all duration-500"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span>نسبة الحضور الفعلي (Attendance)</span>
+                                    <span id="rate-attendance">0%</span>
+                                </div>
+                                <div class="w-full bg-warm-ivory h-2 rounded-full overflow-hidden">
+                                    <div id="bar-attendance" class="bg-muted-gold h-full w-0 transition-all duration-500"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown by Category -->
+                    <div class="bg-ivory p-6 border border-taupe/20 rounded space-y-3">
+                        <h4 class="text-xs uppercase font-semibold text-muted-gold tracking-wider">توزيع الفئات</h4>
+                        <div id="category-breakdown-list" class="space-y-2 text-xs">
+                            <!-- Dynamic Breakdown -->
+                        </div>
+                    </div>
+
+                    <!-- System Status -->
+                    <div class="bg-ivory p-6 border border-taupe/20 rounded space-y-3">
+                        <h4 class="text-xs uppercase font-semibold text-muted-gold tracking-wider">حالة النظام والربط</h4>
+                        <div class="text-xs space-y-2 text-taupe">
+                            <p class="flex items-center gap-2"><i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i> Firebase Firestore: متصل</p>
+                            <p class="flex items-center gap-2"><i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i> WhatsApp Direct Link (wa.me): جاهز</p>
+                            <p class="flex items-center gap-2"><i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i> Mailto Dispatcher: جاهز</p>
+                            <p class="text-[10px] text-taupe/80 pt-2 border-t border-taupe/10">ZEROONE MARASEM Engine v2.0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-taupe/20 py-6 bg-warm-ivory/20 text-center text-xs text-taupe mt-auto">
+        <p class="font-garamond tracking-widest">ZEROONE MARASEM — PREMIUM INVITATION ARCHITECTURE</p>
+    </footer>
+
+    <!-- QR generation / scanning -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- EmailJS (client-side email dispatch, no backend needed) -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+    <!-- App Scripts — utils/qr/analytics/app are plain scripts and read the
+         globals the module scripts below attach (window.MARASEM_AUTH,
+         window.MARASEM_DATA, etc). Module scripts are deferred by the spec
+         and finish before DOMContentLoaded, so load order here is safe. -->
+    <script src="js/utils.js"></script>
+    <script src="js/qr.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/auth.js" type="module"></script>
+    <script src="js/guests.js" type="module"></script>
+    <script src="js/delivery.js" type="module"></script>
+    <script src="js/checkin.js" type="module"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
+
