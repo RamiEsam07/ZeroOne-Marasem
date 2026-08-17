@@ -1,16 +1,11 @@
 /**
- * ZEROONE MARASEM — UI Controller & Platform App Logic
+ * ZEROONE MARASEM — Application Controller V1.4.0
  */
 
 let currentTab = 'create';
 let rawGuestsList = [];
 let hasMoreGuests = false;
 
-// ---------------------------------------------------------------------------
-// Boot — gated behind admin auth (see login.html / auth.js). Wrapped in
-// DOMContentLoaded so the (deferred) auth.js module has already attached
-// window.MARASEM_AUTH by the time this runs.
-// ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
     window.MARASEM_AUTH.guardAdminPage((user, role) => {
         applyRolePermissions(role);
@@ -27,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        loadEventsDropdown();
+
         const nameEl = document.getElementById('admin-name-label');
         if (nameEl) nameEl.textContent = window.MARASEM_AUTH.getRoleLabel(role) + ' — ' + (window.MARASEM_AUTH.getCurrentAdminName() || '');
 
@@ -36,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function applyRolePermissions(role) {
     const can = window.MARASEM_AUTH.can;
-    // Hide the "create invitation" tab entirely for roles that can't manage guests.
     if (!can('manageGuests')) {
         document.querySelectorAll('[data-requires="manageGuests"]').forEach(el => el.classList.add('hidden'));
     }
@@ -49,9 +45,9 @@ function applyRolePermissions(role) {
     if (!can('analytics')) {
         document.querySelectorAll('[data-requires="analytics"]').forEach(el => el.classList.add('hidden'));
     }
-    // Land on the first available tab for this role.
+
     if (!can('manageGuests')) {
-        const fallback = can('checkin') ? 'checkin' : (can('analytics') ? 'analytics' : 'delivery');
+        const fallback = can('checkin') ? 'checkin' : 'analytics';
         switchTab(fallback);
     }
 }
@@ -61,7 +57,7 @@ function setLoadingState(isLoading) {
     if (isLoading && grid) {
         grid.innerHTML = `<div class="col-span-full py-12 text-center text-taupe text-sm">
             <i class="fa-solid fa-spinner fa-spin text-xl mb-2 block"></i>
-            جاري تحميل الضيوف...
+            جاري تحميل سجل الضيوف والمناسبات...
         </div>`;
     }
 }
@@ -71,7 +67,6 @@ async function handleLogout() {
     window.location.href = 'login.html';
 }
 
-// Tab Switcher Controller
 function switchTab(tabName) {
     currentTab = tabName;
 
@@ -95,9 +90,81 @@ function switchTab(tabName) {
 
     if (tabName === 'checkin') startQrScanner('qr-reader', onQrScanResult);
     else stopQrScanner();
+
+    if (tabName === 'events') renderEventsList();
 }
 
-// Live Preview Form Update
+async function loadEventsDropdown() {
+    const select = document.getElementById('field-event-select');
+    if (!select) return;
+    const events = await window.MARASEM_DATA.fetchEvents();
+    select.innerHTML = `<option value="">-- اختر مناسبة أو أدخل بيانات يدوياً --</option>` +
+        events.map(ev => `<option value="${ev.id}">${escapeHTML(ev.name)} (${ev.date})</option>`).join('');
+}
+
+async function handleEventSelectChange() {
+    const select = document.getElementById('field-event-select');
+    const eventId = select.value;
+    if (!eventId) return;
+
+    const events = window.MARASEM_DATA.getEventsCache();
+    const target = events.find(e => e.id === eventId);
+    if (target) {
+        document.getElementById('field-event-name').value = target.name || '';
+        document.getElementById('field-event-date').value = target.date || '';
+        document.getElementById('field-event-time').value = target.time || '';
+        document.getElementById('field-venue').value = target.venue || '';
+        document.getElementById('field-location-url').value = target.locationUrl || '';
+        updateLivePreview();
+    }
+}
+
+async function handleCreateEvent(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btn-submit-event');
+    btn.disabled = true;
+
+    const data = {
+        name: document.getElementById('event-name-input').value,
+        type: document.getElementById('event-type-input').value,
+        date: document.getElementById('event-date-input').value,
+        time: document.getElementById('event-time-input').value,
+        venue: document.getElementById('event-venue-input').value,
+        locationUrl: document.getElementById('event-location-url-input').value
+    };
+
+    try {
+        await window.MARASEM_DATA.createEventRecord(data);
+        showToast('تمت إضافة المناسبة بنجاح ✦', 'success');
+        document.getElementById('create-event-form').reset();
+        await loadEventsDropdown();
+        await renderEventsList();
+    } catch (e) {
+        showToast('تعذر حفظ المناسبة', 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function renderEventsList() {
+    const container = document.getElementById('events-list-container');
+    if (!container) return;
+    const events = await window.MARASEM_DATA.fetchEvents();
+    if (events.length === 0) {
+        container.innerHTML = `<p class="text-xs text-taupe text-center py-6">لا توجد مناسبات مسجلة حتى الآن.</p>`;
+        return;
+    }
+    container.innerHTML = events.map(ev => `
+        <div class="bg-ivory border border-taupe/20 p-4 rounded text-xs space-y-1">
+            <div class="flex justify-between font-semibold text-espresso">
+                <span>${escapeHTML(ev.name)}</span>
+                <span class="text-muted-gold">${escapeHTML(ev.type || '')}</span>
+            </div>
+            <p class="text-taupe">📅 ${escapeHTML(ev.date || '-')} | 🕐 ${escapeHTML(ev.time || '-')} | 📍 ${escapeHTML(ev.venue || '-')}</p>
+        </div>
+    `).join('');
+}
+
 function updateLivePreview() {
     const name = document.getElementById('field-name')?.value || '[اسم المدعو]';
     const type = document.getElementById('field-type')?.value || 'VIP';
@@ -107,53 +174,32 @@ function updateLivePreview() {
     const venue = document.getElementById('field-venue')?.value || '[المكان]';
     const table = document.getElementById('field-table')?.value || '[رقم الطاولة]';
 
-    document.getElementById('prev-name').textContent = name;
-    document.getElementById('prev-type').textContent = type;
-    document.getElementById('prev-event').textContent = eventName;
-    document.getElementById('prev-date').textContent = date;
-    document.getElementById('prev-time').textContent = time;
-    document.getElementById('prev-venue').textContent = venue;
-    document.getElementById('prev-table').textContent = table ? `الطاولة: ${table}` : '';
+    if (document.getElementById('prev-name')) document.getElementById('prev-name').textContent = name;
+    if (document.getElementById('prev-type')) document.getElementById('prev-type').textContent = type;
+    if (document.getElementById('prev-event')) document.getElementById('prev-event').textContent = eventName;
+    if (document.getElementById('prev-date')) document.getElementById('prev-date').textContent = date;
+    if (document.getElementById('prev-time')) document.getElementById('prev-time').textContent = time;
+    if (document.getElementById('prev-venue')) document.getElementById('prev-venue').textContent = venue;
+    if (document.getElementById('prev-table')) document.getElementById('prev-table').textContent = table ? `الطاولة: ${table}` : '';
 }
 
-function clearFieldErrors() {
-    document.querySelectorAll('.field-error-msg').forEach(el => el.remove());
-    document.querySelectorAll('.field-error-border').forEach(el => el.classList.remove('field-error-border', 'border-rose-600'));
-}
-
-function showFieldErrors(errors) {
-    clearFieldErrors();
-    const fieldMap = { name: 'field-name', phone: 'field-phone', email: 'field-email', eventDate: 'field-event-date', locationUrl: 'field-location-url' };
-    Object.entries(errors).forEach(([key, message]) => {
-        const input = document.getElementById(fieldMap[key]);
-        if (!input) return;
-        input.classList.add('field-error-border', 'border-rose-600');
-        const msg = document.createElement('p');
-        msg.className = 'field-error-msg text-[11px] text-rose-700 mt-1';
-        msg.textContent = message;
-        input.parentElement.appendChild(msg);
-    });
-}
-
-// Handle Form Submission
 async function handleCreateInvitation(event) {
     event.preventDefault();
     if (!window.MARASEM_AUTH.can('manageGuests')) {
         showToast('لا تملك صلاحية إنشاء دعوات', 'error');
         return;
     }
-    clearFieldErrors();
 
     const btn = document.getElementById('btn-submit-invitation');
     btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-sm"></i> <span>جاري الإنشاء...</span>`;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-sm"></i> <span>جاري إنشاء الدعوة...</span>`;
 
     const guestData = {
         name: document.getElementById('field-name').value,
         phone: document.getElementById('field-phone').value,
         email: document.getElementById('field-email').value,
         type: document.getElementById('field-type').value,
-        style: document.getElementById('field-style').value,
+        eventId: document.getElementById('field-event-select').value,
         eventName: document.getElementById('field-event-name').value.trim(),
         eventDate: document.getElementById('field-event-date').value.trim(),
         eventTime: document.getElementById('field-event-time').value.trim(),
@@ -170,71 +216,22 @@ async function handleCreateInvitation(event) {
         updateLivePreview();
         switchTab('delivery');
     } catch (error) {
-        if (error.message === 'VALIDATION_ERROR') {
-            showFieldErrors(error.fieldErrors);
-            showToast('يرجى تصحيح الحقول المظللة', 'error');
-        } else if (error.message === 'DUPLICATE_GUEST') {
-            const proceed = await showConfirmModal({
-                title: 'هذا الضيف موجود بالفعل',
-                message: `يوجد ضيف بنفس رقم الهاتف والمناسبة (${escapeHTML(error.existingGuest.name)}). هل تريد إنشاء دعوة إضافية على أي حال؟`,
-                confirmLabel: 'إنشاء على أي حال',
-                cancelLabel: 'إلغاء'
-            });
-            if (proceed) {
-                try {
-                    await window.MARASEM_DATA.createGuestRecord(guestData, { allowDuplicate: true });
-                    showToast('تم إنشاء الدعوة بنجاح ✦', 'success');
-                    document.getElementById('create-invitation-form').reset();
-                    updateLivePreview();
-                    switchTab('delivery');
-                } catch (e2) {
-                    showToast('تعذر إنشاء الدعوة، يرجى المحاولة لاحقاً', 'error');
-                }
-            }
-        } else {
-            console.error(error);
-            showToast('تعذر إنشاء الدعوة، يرجى المحاولة لاحقاً', 'error');
-        }
+        console.error(error);
+        showToast('تعذر إنشاء الدعوة، تحقق من البيانات والاتصال', 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<span>إنشاء تجربة الدعوة ✦</span>`;
     }
 }
 
-// Render Dashboard Statistics
 function updateDashboardMetrics(guests) {
     const stats = window.MARASEM_ANALYTICS.computeGuestStats(guests);
 
-    document.getElementById('stat-total').textContent = stats.total;
-    document.getElementById('stat-delivered').textContent = stats.delivered;
-    document.getElementById('stat-opened').textContent = stats.opened;
-    document.getElementById('stat-confirmed').textContent = stats.confirmed;
-    document.getElementById('stat-checkedin').textContent = stats.checkedIn;
-
-    const rateDelivery = document.getElementById('rate-delivery');
-    if (rateDelivery) {
-        rateDelivery.textContent = `${stats.deliveryRate}%`;
-        document.getElementById('bar-delivery').style.width = `${stats.deliveryRate}%`;
-        document.getElementById('rate-open').textContent = `${stats.openRate}%`;
-        document.getElementById('bar-open').style.width = `${stats.openRate}%`;
-        document.getElementById('rate-rsvp').textContent = `${stats.rsvpRate}%`;
-        document.getElementById('bar-rsvp').style.width = `${stats.rsvpRate}%`;
-    }
-    const rateAttendance = document.getElementById('rate-attendance');
-    if (rateAttendance) {
-        rateAttendance.textContent = `${stats.attendanceRate}%`;
-        document.getElementById('bar-attendance').style.width = `${stats.attendanceRate}%`;
-    }
-
-    const catList = document.getElementById('category-breakdown-list');
-    if (catList) {
-        const breakdown = window.MARASEM_ANALYTICS.computeCategoryBreakdown(guests);
-        catList.innerHTML = breakdown.map(({ type, count }) => `
-            <div class="flex justify-between py-1 border-b border-taupe/10">
-                <span>${escapeHTML(type)}</span>
-                <span class="font-bold">${count}</span>
-            </div>`).join('');
-    }
+    if (document.getElementById('stat-total')) document.getElementById('stat-total').textContent = stats.total;
+    if (document.getElementById('stat-delivered')) document.getElementById('stat-delivered').textContent = stats.delivered;
+    if (document.getElementById('stat-opened')) document.getElementById('stat-opened').textContent = stats.opened;
+    if (document.getElementById('stat-confirmed')) document.getElementById('stat-confirmed').textContent = stats.confirmed;
+    if (document.getElementById('stat-checkedin')) document.getElementById('stat-checkedin').textContent = stats.checkedIn;
 }
 
 function renderLoadMoreControl() {
@@ -243,19 +240,6 @@ function renderLoadMoreControl() {
     el.classList.toggle('hidden', !hasMoreGuests);
 }
 
-function loadMoreGuests() {
-    if (window.MARASEM_DATA?.increasePageSize) {
-        window.MARASEM_DATA.increasePageSize((guests, more) => {
-            rawGuestsList = guests;
-            hasMoreGuests = !!more;
-            updateDashboardMetrics(guests);
-            applyFiltersAndRender();
-            renderLoadMoreControl();
-        });
-    }
-}
-
-// Apply Filters & Search in Delivery Center
 function applyFiltersAndRender() {
     const searchQuery = document.getElementById('delivery-search')?.value.toLowerCase().trim() || '';
     const typeFilter = document.getElementById('filter-type')?.value || 'ALL';
@@ -264,11 +248,11 @@ function applyFiltersAndRender() {
     let filtered = rawGuestsList.filter(g => {
         const matchesSearch = (g.name || '').toLowerCase().includes(searchQuery) ||
                               (g.phone || '').includes(searchQuery) ||
+                              (g.confirmationCode || '').toLowerCase().includes(searchQuery) ||
                               (g.id || '').toLowerCase().includes(searchQuery);
-        const matchesType = (typeFilter === 'ALL') || (g.type === typeFilter);
+        const matchesType = (typeFilter === 'ALL') || (g.type === typeFilter || g.guestType === typeFilter);
         let matchesStatus = true;
-        if (statusFilter === 'DELIVERED') matchesStatus = g.delivered;
-        if (statusFilter === 'NOT_DELIVERED') matchesStatus = !g.delivered;
+        if (statusFilter === 'DELIVERED') matchesStatus = g.delivered || g.whatsappStatus !== 'none';
         if (statusFilter === 'CONFIRMED') matchesStatus = g.confirmed;
         if (statusFilter === 'CHECKED_IN') matchesStatus = g.checkedIn;
         return matchesSearch && matchesType && matchesStatus;
@@ -278,9 +262,6 @@ function applyFiltersAndRender() {
     renderGuestsTable(filtered);
 }
 
-const applyFiltersDebounced = typeof debounce === 'function' ? debounce(applyFiltersAndRender, 250) : applyFiltersAndRender;
-
-// Render Delivery Cards Grid
 function renderDeliveryCards(guests) {
     const grid = document.getElementById('delivery-cards-grid');
     if (!grid) return;
@@ -289,162 +270,89 @@ function renderDeliveryCards(guests) {
         grid.innerHTML = `
             <div class="col-span-full py-12 text-center text-taupe text-sm">
                 <i class="fa-solid fa-folder-open text-2xl mb-2 block text-taupe/50"></i>
-                لا توجد دعوات مسجلة تطابق محددات البحث.
+                لا توجد دعوات مسجلة تطابق التصفية والبحث.
             </div>`;
         return;
     }
 
-    const canDeliver = window.MARASEM_AUTH.can('delivery');
-    const canDelete = window.MARASEM_AUTH.can('deleteGuest');
-
     grid.innerHTML = guests.map(g => {
         const url = generateInvitationUrl(g.invitationToken || g.id);
-        const waLabel = g.whatsappStatus === 'opened_app' ? 'WhatsApp Ready ✓' : 'WhatsApp';
+        const code = g.confirmationCode || 'ZM-──────';
 
         return `
         <div class="bg-warm-ivory/40 border border-taupe/20 p-5 rounded-lg space-y-4 hover:border-muted-gold/50 transition-colors flex flex-col justify-between">
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] tracking-wider uppercase border border-muted-gold/40 px-2 py-0.5 text-muted-gold font-semibold">${escapeHTML(g.type)}</span>
-                    <span class="text-[10px] text-taupe">${escapeHTML(g.style || 'Classic')}</span>
+                    <span class="text-[10px] tracking-wider uppercase border border-muted-gold/40 px-2 py-0.5 text-muted-gold font-semibold">${escapeHTML(g.type || 'Standard')}</span>
+                    <span class="text-[10px] text-espresso font-bold bg-muted-gold/20 px-2 py-0.5 rounded">${escapeHTML(code)}</span>
                 </div>
                 <h4 class="font-garamond font-bold text-lg text-espresso">${escapeHTML(g.name)}</h4>
                 <p class="text-xs text-taupe"><i class="fa-solid fa-phone text-[10px] ml-1"></i> ${escapeHTML(g.phone)}</p>
-                ${g.email ? `<p class="text-xs text-taupe"><i class="fa-solid fa-envelope text-[10px] ml-1"></i> ${escapeHTML(g.email)}</p>` : ''}
             </div>
 
             <div class="grid grid-cols-2 gap-1.5 pt-3 border-t border-taupe/15 text-[10px]">
                 <div class="p-1.5 rounded bg-ivory text-center border border-taupe/10">
                     <span class="text-taupe block">التسليم</span>
-                    <span class="font-semibold ${g.delivered ? 'text-emerald-700' : 'text-taupe'}">${g.delivered ? '✓ ' + waLabel : 'لم يتم'}</span>
-                </div>
-                <div class="p-1.5 rounded bg-ivory text-center border border-taupe/10">
-                    <span class="text-taupe block">الفتح</span>
-                    <span class="font-semibold ${g.opened ? 'text-espresso' : 'text-taupe'}">${g.opened ? '✓ نعم' : 'لا'}</span>
+                    <span class="font-semibold ${g.delivered ? 'text-emerald-700' : 'text-taupe'}">${g.delivered ? '✓ مجهز' : 'لم يتم'}</span>
                 </div>
                 <div class="p-1.5 rounded bg-ivory text-center border border-taupe/10">
                     <span class="text-taupe block">RSVP</span>
-                    <span class="font-semibold ${g.confirmed ? 'text-emerald-700' : 'text-taupe'}">${g.confirmed ? '✓ مؤكد' : 'غير مؤكد'}</span>
-                </div>
-                <div class="p-1.5 rounded bg-ivory text-center border border-taupe/10">
-                    <span class="text-taupe block">الوصول</span>
-                    <span class="font-semibold ${g.checkedIn ? 'text-emerald-700' : 'text-taupe'}">${g.checkedIn ? '✓ وصل' : 'لم يصل'}</span>
+                    <span class="font-semibold ${g.confirmed ? 'text-emerald-700' : 'text-taupe'}">${g.confirmed ? '✓ مؤكد' : 'معلق'}</span>
                 </div>
             </div>
 
             <div class="pt-2 space-y-2">
-                ${canDeliver ? `
+                <button onclick="dispatchWhatsAppById('${g.id}')" class="w-full bg-emerald-800 text-white py-2 px-3 rounded text-xs hover:bg-emerald-900 transition-colors flex items-center justify-center gap-1.5">
+                    <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp mssg
+                </button>
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="dispatchWhatsAppById('${g.id}')" class="bg-emerald-800 text-white py-2 px-3 rounded text-xs hover:bg-emerald-900 transition-colors flex items-center justify-center gap-1.5">
-                        <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+                    <button onclick="copyToClipboard('${url}')" class="border border-taupe/30 py-1.5 px-2 rounded text-[11px] hover:bg-warm-ivory transition-colors">
+                        نسخ الرابط
                     </button>
-                    <button onclick="dispatchEmailById('${g.id}')" class="bg-espresso text-ivory py-2 px-3 rounded text-xs hover:bg-muted-gold hover:text-espresso transition-colors flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-envelope text-xs"></i> البريد
-                    </button>
-                </div>` : ''}
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="copyToClipboard('${url}')" class="border border-taupe/30 py-1.5 px-3 rounded text-[11px] hover:bg-warm-ivory transition-colors">
-                        <i class="fa-solid fa-copy ml-1"></i> نسخ الرابط
-                    </button>
-                    <a href="${url}" target="_blank" class="border border-taupe/30 py-1.5 px-3 rounded text-[11px] text-center hover:bg-warm-ivory transition-colors">
-                        <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i> فتح الدعوة
+                    <a href="${url}" target="_blank" class="border border-taupe/30 py-1.5 px-2 rounded text-[11px] text-center hover:bg-warm-ivory transition-colors">
+                        معاينة
                     </a>
                 </div>
-                <button onclick="openQrModal('${g.invitationToken || g.id}')" class="w-full border border-taupe/30 py-1.5 px-3 rounded text-[11px] hover:bg-warm-ivory transition-colors">
-                    <i class="fa-solid fa-qrcode ml-1"></i> عرض QR
-                </button>
             </div>
         </div>`;
     }).join('');
 }
 
-// Render Guest Table View
 function renderGuestsTable(guests) {
     const tbody = document.getElementById('guests-table-body');
-    const countLabel = document.getElementById('records-count');
     if (!tbody) return;
 
-    if (countLabel) countLabel.textContent = `${guests.length} دعوة`;
-
     if (guests.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-taupe text-xs">
-            لا يوجد ضيوف حتى الآن. ابدأ بإضافة أول ضيف.
-        </td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-taupe text-xs">لا يوجد ضيوف تطابق محددات البحث.</td></tr>`;
         return;
     }
 
-    const canDeliver = window.MARASEM_AUTH.can('delivery');
-    const canDelete = window.MARASEM_AUTH.can('deleteGuest');
-
     tbody.innerHTML = guests.map(g => {
         const url = generateInvitationUrl(g.invitationToken || g.id);
+        const code = g.confirmationCode || 'ZM-──────';
         return `
         <tr class="hover:bg-warm-ivory/30 transition-colors">
             <td class="p-3 font-semibold text-espresso">${escapeHTML(g.name)}</td>
             <td class="p-3 text-taupe">${escapeHTML(g.phone)}</td>
-            <td class="p-3"><span class="px-1.5 py-0.5 border border-muted-gold/40 text-muted-gold rounded text-[10px]">${escapeHTML(g.type)}</span></td>
+            <td class="p-3 text-espresso font-bold">${escapeHTML(code)}</td>
+            <td class="p-3"><span class="px-1.5 py-0.5 border border-muted-gold/40 text-muted-gold rounded text-[10px]">${escapeHTML(g.type || 'Standard')}</span></td>
             <td class="p-3">${g.delivered ? '<span class="text-emerald-700">✓</span>' : '-'}</td>
             <td class="p-3">${g.opened ? '<span class="text-espresso">✓</span>' : '-'}</td>
             <td class="p-3">${g.confirmed ? '<span class="text-emerald-700">مؤكد</span>' : 'معلق'}</td>
-            <td class="p-3">${g.checkedIn ? '<span class="text-emerald-700">تم</span>' : '-'}</td>
+            <td class="p-3">${g.checkedIn ? '<span class="text-emerald-700">وصل</span>' : '-'}</td>
             <td class="p-3 text-center">
-                <div class="flex items-center justify-center gap-2">
-                    ${canDeliver ? `<button onclick="dispatchWhatsAppById('${g.id}')" title="WhatsApp" class="text-emerald-700 hover:text-emerald-900"><i class="fa-brands fa-whatsapp"></i></button>
-                    <button onclick="dispatchEmailById('${g.id}')" title="Email" class="text-espresso hover:text-muted-gold"><i class="fa-solid fa-envelope"></i></button>` : ''}
-                    <a href="${url}" target="_blank" title="Preview" class="text-taupe hover:text-espresso"><i class="fa-solid fa-eye"></i></a>
-                    ${canDelete ? `<button onclick="confirmDeleteGuest('${g.id}')" title="Delete" class="text-rose-700 hover:text-rose-900"><i class="fa-solid fa-trash-can"></i></button>` : ''}
-                </div>
+                <button onclick="dispatchWhatsAppById('${g.id}')" title="WhatsApp" class="text-emerald-700 hover:text-emerald-900 ml-2"><i class="fa-brands fa-whatsapp"></i></button>
+                <a href="${url}" target="_blank" title="Preview" class="text-taupe hover:text-espresso"><i class="fa-solid fa-eye"></i></a>
             </td>
         </tr>`;
     }).join('');
 }
 
-async function confirmDeleteGuest(token) {
-    if (!window.MARASEM_AUTH.can('deleteGuest')) {
-        showToast('لا تملك صلاحية حذف الضيوف', 'error');
-        return;
-    }
-    const proceed = await showConfirmModal({
-        title: 'حذف الضيف',
-        message: 'هل أنت متأكد من حذف هذا الضيف؟ هذا الإجراء لا يمكن التراجع عنه.',
-        confirmLabel: 'حذف نهائي',
-        danger: true
-    });
-    if (proceed && window.MARASEM_DATA?.deleteGuestRecord) {
-        window.MARASEM_DATA.deleteGuestRecord(token);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// QR modal
-// ---------------------------------------------------------------------------
-function openQrModal(token) {
-    const guest = (rawGuestsList || []).find(g => g.id === token);
-    const name = guest?.name || 'دعوة خاصة';
-    const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 z-[60] bg-espresso/60 backdrop-blur-sm flex items-center justify-center p-4';
-    overlay.innerHTML = `
-        <div class="bg-ivory max-w-xs w-full rounded-lg border border-taupe/20 shadow-2xl p-6 space-y-4 text-center" dir="rtl">
-            <h3 class="font-garamond font-bold text-lg text-espresso">${escapeHTML(name)}</h3>
-            <div id="qr-modal-canvas-holder" class="flex justify-center"></div>
-            <p class="text-[11px] text-taupe">يحتوي هذا الرمز على رابط الدعوة الآمن فقط</p>
-            <button data-action="close" class="w-full border border-taupe/30 py-2 rounded text-xs hover:bg-warm-ivory transition-colors">إغلاق</button>
-        </div>`;
-    document.body.appendChild(overlay);
-    renderGuestQr(document.getElementById('qr-modal-canvas-holder'), token);
-    overlay.addEventListener('click', (e) => {
-        if (e.target?.dataset?.action === 'close' || e.target === overlay) overlay.remove();
-    });
-}
-
-// ---------------------------------------------------------------------------
-// Check-in
-// ---------------------------------------------------------------------------
 async function performCheckinSearch() {
     const query = document.getElementById('checkin-search-input')?.value.trim();
     const resultBox = document.getElementById('checkin-result');
     if (!query) {
-        showToast('يرجى إدخال الاسم أو رقم الهاتف أو ID الدعوة', 'error');
+        showToast('أدخل الاسم أو الهاتف أو رمز التأكيد', 'error');
         return;
     }
 
@@ -476,24 +384,28 @@ function renderCheckinResult(guest) {
         return;
     }
 
+    const code = guest.confirmationCode || 'ZM-──────';
+
     resultBox.innerHTML = `
         <div class="space-y-3">
             <div class="flex justify-between items-start">
                 <div>
                     <h4 class="font-garamond font-bold text-xl text-espresso">${escapeHTML(guest.name)}</h4>
-                    <p class="text-xs text-taupe">${escapeHTML(guest.eventName)}</p>
+                    <p class="text-xs text-taupe">${escapeHTML(guest.eventName || '')}</p>
                 </div>
-                <span class="px-2 py-0.5 border border-muted-gold/40 text-muted-gold text-[10px] uppercase font-bold">${escapeHTML(guest.type)}</span>
+                <div class="text-right">
+                    <span class="px-2 py-0.5 border border-muted-gold/40 text-muted-gold text-[10px] uppercase font-bold block mb-1">${escapeHTML(guest.type || 'Standard')}</span>
+                    <span class="text-xs font-bold text-espresso bg-warm-ivory px-2 py-0.5 rounded">${escapeHTML(code)}</span>
+                </div>
             </div>
             <div class="text-xs space-y-1 text-espresso border-y border-taupe/15 py-3">
-                <p><strong>الطاولة:</strong> ${escapeHTML(guest.table || 'غير محددة')}</p>
-                <p><strong>الموقف:</strong> ${escapeHTML(guest.parking || 'غير محدد')}</p>
-                <p><strong>حالة RSVP:</strong> ${guest.confirmed ? '<span class="text-emerald-700">مؤكد الحضور</span>' : 'لم يحدد بعد'}</p>
+                <p><strong>الطاولة:</strong> ${escapeHTML(guest.table || 'حسب التوجيه')}</p>
+                <p><strong>حالة RSVP:</strong> ${guest.confirmed ? '<span class="text-emerald-700 font-bold">مؤكد الحضور</span>' : 'غير مؤكد'}</p>
             </div>
             <div id="checkin-action-area">
                 ${guest.checkedIn
-                    ? `<div class="bg-emerald-900/10 border border-emerald-700/30 text-emerald-800 p-3 rounded text-center text-xs font-semibold">✓ تم تسجيل الوصول مسبقاً</div>`
-                    : `<button onclick="doCheckin('${guest.invitationToken || guest.id}')" class="w-full bg-espresso text-ivory py-3 rounded text-xs font-medium hover:bg-muted-gold hover:text-espresso transition-colors">اعتماد الدخول ✦</button>`
+                    ? `<div class="bg-emerald-900/10 border border-emerald-700/30 text-emerald-800 p-3 rounded text-center text-xs font-semibold">✓ Already Checked In — تم الدخول مسبقاً</div>`
+                    : `<button onclick="doCheckin('${guest.invitationToken || guest.id}')" class="w-full bg-espresso text-ivory py-3 rounded text-xs font-medium hover:bg-muted-gold hover:text-espresso transition-colors">اعتماد الدخول (CHECK IN) ✦</button>`
                 }
             </div>
         </div>`;
@@ -505,4 +417,4 @@ async function doCheckin(token) {
         const guest = await window.MARASEM_CHECKIN.lookupByQrToken(token);
         renderCheckinResult(guest);
     }
-}
+        }
