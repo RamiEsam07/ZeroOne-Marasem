@@ -1,6 +1,14 @@
 {
   "product": "ZEROONE MARASEM",
-  "release": "V1.2.0",
-  "purpose": "Authentication deployment/cache-busting stabilization",
-  "releaseDate": "2026-08-16"
+  "version": "1.4.0",
+  "releaseDate": "2026-08-17",
+  "purpose": "Comprehensive Event Management, Secure Public Projection, Dynamic URLs & Check-in Platform Update",
+  "buildNotes": [
+    "Added /events data model and event selector integration.",
+    "Enforced unguessable token (24+ chars) and unique confirmation code (ZM-XXXXXX) generation.",
+    "Integrated /publicGuests collection to insulate sensitive guest info (phone/email/notes) from public reads.",
+    "Updated invitation path dynamically considering GitHub Pages base directory.",
+    "Implemented check-in lookup by Confirmation Code, Phone, or Name with duplicate check-in prevention.",
+    "Updated audit logs with serverTimestamp and strict role-based Firestore security rules."
+  ]
 }
