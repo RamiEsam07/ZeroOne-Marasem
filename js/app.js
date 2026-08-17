@@ -11,6 +11,43 @@ document.addEventListener('DOMContentLoaded', () => {
         applyRolePermissions(role);
         setLoadingState(true);
 
+        // ====================================================
+        // 🛠️ ربط الأحداث الرئيسية للنماذج والحقول (Event Listeners)
+        // ====================================================
+
+        // 1. ربط نموذج إنشاء الدعوة
+        const invitationForm = document.getElementById('create-invitation-form');
+        if (invitationForm) {
+            invitationForm.addEventListener('submit', handleCreateInvitation);
+        }
+
+        // 2. ربط نموذج إضافة المناسبة
+        const eventForm = document.getElementById('create-event-form');
+        if (eventForm) {
+            eventForm.addEventListener('submit', handleCreateEvent);
+        }
+
+        // 3. ربط القائمة المنسدلة للمناسبات عند التغيير
+        const eventSelect = document.getElementById('field-event-select');
+        if (eventSelect) {
+            eventSelect.addEventListener('change', handleEventSelectChange);
+        }
+
+        // 4. ربط حقول الإدخال للتحديث اللحظي لكارت المعاينة
+        const previewInputIds = [
+            'field-name', 'field-type', 'field-event-name',
+            'field-event-date', 'field-event-time', 'field-venue', 'field-table'
+        ];
+        previewInputIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', updateLivePreview);
+                el.addEventListener('change', updateLivePreview);
+            }
+        });
+
+        // ====================================================
+
         if (window.MARASEM_DATA && window.MARASEM_DATA.subscribeGuests) {
             window.MARASEM_DATA.subscribeGuests((guests, more) => {
                 setLoadingState(false);
@@ -110,11 +147,11 @@ async function handleEventSelectChange() {
     const events = window.MARASEM_DATA.getEventsCache();
     const target = events.find(e => e.id === eventId);
     if (target) {
-        document.getElementById('field-event-name').value = target.name || '';
-        document.getElementById('field-event-date').value = target.date || '';
-        document.getElementById('field-event-time').value = target.time || '';
-        document.getElementById('field-venue').value = target.venue || '';
-        document.getElementById('field-location-url').value = target.locationUrl || '';
+        if (document.getElementById('field-event-name')) document.getElementById('field-event-name').value = target.name || '';
+        if (document.getElementById('field-event-date')) document.getElementById('field-event-date').value = target.date || '';
+        if (document.getElementById('field-event-time')) document.getElementById('field-event-time').value = target.time || '';
+        if (document.getElementById('field-venue')) document.getElementById('field-venue').value = target.venue || '';
+        if (document.getElementById('field-location-url')) document.getElementById('field-location-url').value = target.locationUrl || '';
         updateLivePreview();
     }
 }
@@ -122,27 +159,28 @@ async function handleEventSelectChange() {
 async function handleCreateEvent(event) {
     event.preventDefault();
     const btn = document.getElementById('btn-submit-event');
-    btn.disabled = true;
+    if (btn) btn.disabled = true;
 
     const data = {
-        name: document.getElementById('event-name-input').value,
-        type: document.getElementById('event-type-input').value,
-        date: document.getElementById('event-date-input').value,
-        time: document.getElementById('event-time-input').value,
-        venue: document.getElementById('event-venue-input').value,
-        locationUrl: document.getElementById('event-location-url-input').value
+        name: document.getElementById('event-name-input')?.value || '',
+        type: document.getElementById('event-type-input')?.value || '',
+        date: document.getElementById('event-date-input')?.value || '',
+        time: document.getElementById('event-time-input')?.value || '',
+        venue: document.getElementById('event-venue-input')?.value || '',
+        locationUrl: document.getElementById('event-location-url-input')?.value || ''
     };
 
     try {
         await window.MARASEM_DATA.createEventRecord(data);
         showToast('تمت إضافة المناسبة بنجاح ✦', 'success');
-        document.getElementById('create-event-form').reset();
+        document.getElementById('create-event-form')?.reset();
         await loadEventsDropdown();
         await renderEventsList();
     } catch (e) {
+        console.error(e);
         showToast('تعذر حفظ المناسبة', 'error');
     } finally {
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
     }
 }
 
@@ -191,36 +229,40 @@ async function handleCreateInvitation(event) {
     }
 
     const btn = document.getElementById('btn-submit-invitation');
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-sm"></i> <span>جاري إنشاء الدعوة...</span>`;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-sm"></i> <span>جاري إنشاء الدعوة...</span>`;
+    }
 
     const guestData = {
-        name: document.getElementById('field-name').value,
-        phone: document.getElementById('field-phone').value,
-        email: document.getElementById('field-email').value,
-        type: document.getElementById('field-type').value,
-        eventId: document.getElementById('field-event-select').value,
-        eventName: document.getElementById('field-event-name').value.trim(),
-        eventDate: document.getElementById('field-event-date').value.trim(),
-        eventTime: document.getElementById('field-event-time').value.trim(),
-        venue: document.getElementById('field-venue').value.trim(),
-        locationUrl: document.getElementById('field-location-url').value.trim(),
-        table: document.getElementById('field-table').value.trim(),
-        parking: document.getElementById('field-parking').value.trim()
+        name: document.getElementById('field-name')?.value || '',
+        phone: document.getElementById('field-phone')?.value || '',
+        email: document.getElementById('field-email')?.value || '',
+        type: document.getElementById('field-type')?.value || 'Standard',
+        eventId: document.getElementById('field-event-select')?.value || '',
+        eventName: (document.getElementById('field-event-name')?.value || '').trim(),
+        eventDate: (document.getElementById('field-event-date')?.value || '').trim(),
+        eventTime: (document.getElementById('field-event-time')?.value || '').trim(),
+        venue: (document.getElementById('field-venue')?.value || '').trim(),
+        locationUrl: (document.getElementById('field-location-url')?.value || '').trim(),
+        table: (document.getElementById('field-table')?.value || '').trim(),
+        parking: (document.getElementById('field-parking')?.value || '').trim()
     };
 
     try {
         await window.MARASEM_DATA.createGuestRecord(guestData);
         showToast('تم إنشاء الدعوة بنجاح ✦', 'success');
-        document.getElementById('create-invitation-form').reset();
+        document.getElementById('create-invitation-form')?.reset();
         updateLivePreview();
         switchTab('delivery');
     } catch (error) {
         console.error(error);
         showToast('تعذر إنشاء الدعوة، تحقق من البيانات والاتصال', 'error');
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<span>إنشاء تجربة الدعوة ✦</span>`;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<span>إنشاء تجربة الدعوة ✦</span>`;
+        }
     }
 }
 
@@ -417,4 +459,4 @@ async function doCheckin(token) {
         const guest = await window.MARASEM_CHECKIN.lookupByQrToken(token);
         renderCheckinResult(guest);
     }
-        }
+}
