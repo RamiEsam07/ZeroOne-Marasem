@@ -3,95 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول — ZEROONE MARASEM</title>
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://www.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>ZEROONE MARASEM — تسجيل الدخول</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
 
     <style>
-        .login-bg { background: #211C17; }
-        .login-card { background: #211C17; border: 1px solid rgba(184,155,94,.30); }
-        .login-gold { color: #B89B5E; }
-        .login-muted { color: #8D8272; }
-        .login-input {
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #211d19;
+            color: #f5f0e8;
+            font-family: "Cairo", sans-serif;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 24px;
+        }
+
+        .login-card {
             width: 100%;
-            background: #F7F3EA;
-            color: #211C17;
-            border: 1px solid rgba(141,130,114,.30);
-            padding: .625rem 1rem;
-            border-radius: .25rem;
-            font-size: .875rem;
+            max-width: 620px;
+
+            border: 1px solid rgba(190, 158, 91, 0.35);
+            border-radius: 16px;
+
+            padding: 55px 45px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(255,255,255,0.025),
+                    rgba(255,255,255,0.005)
+                );
+
+            box-shadow:
+                0 25px 80px rgba(0,0,0,0.35);
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 42px;
+        }
+
+        .brand h1 {
+            margin: 0;
+
+            font-family: "Cormorant Garamond", serif;
+            font-size: 34px;
+            letter-spacing: 5px;
+
+            color: #c7a66a;
+        }
+
+        .brand p {
+            margin: 8px 0 0;
+
+            color: #9d958b;
+            font-size: 15px;
+        }
+
+        .field {
+            margin-bottom: 22px;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 9px;
+
+            color: #aaa097;
+            font-size: 15px;
+        }
+
+        .field input {
+            width: 100%;
+            height: 64px;
+
+            border: 1px solid #c8ad79;
+            border-radius: 7px;
+
+            background: #f7f3eb;
+            color: #17130f;
+
+            padding: 0 18px;
+
+            font-family: "Cairo", sans-serif;
+            font-size: 18px;
+
             outline: none;
         }
-        .login-input:focus { border-color: #B89B5E; }
+
+        .field input:focus {
+            border-color: #d7bb82;
+
+            box-shadow:
+                0 0 0 3px rgba(199,166,106,0.12);
+        }
+
         .login-button {
             width: 100%;
-            background: #B89B5E;
-            color: #211C17;
+            height: 64px;
+
+            margin-top: 10px;
+
+            border: none;
+            border-radius: 7px;
+
+            background: #eee8dd;
+            color: #211d19;
+
+            font-family: "Cairo", sans-serif;
+            font-size: 20px;
             font-weight: 600;
-            padding: .75rem 1rem;
-            border-radius: .25rem;
-            font-size: .875rem;
-            border: 0;
+
             cursor: pointer;
-            transition: background-color .2s ease, opacity .2s ease;
+
+            transition: 0.2s ease;
         }
-        .login-button:hover { background: #EEE8DC; }
-        .login-button:disabled { opacity: .65; cursor: wait; }
-        .login-error { color: #fb7185; }
-        .hidden { display: none !important; }
+
+        .login-button:hover {
+            background: #ffffff;
+        }
+
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .message {
+            display: none;
+
+            margin-top: 20px;
+            padding: 13px 15px;
+
+            border-radius: 8px;
+
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .message.error {
+            display: block;
+
+            background: rgba(190, 55, 70, 0.12);
+            border: 1px solid rgba(220, 80, 95, 0.35);
+            color: #ef8994;
+        }
+
+        .message.success {
+            display: block;
+
+            background: rgba(100, 170, 120, 0.1);
+            border: 1px solid rgba(100, 170, 120, 0.3);
+            color: #9bd0a5;
+        }
+
+        .footer {
+            margin-top: 30px;
+
+            text-align: center;
+
+            color: #6f6860;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+
+            body {
+                padding: 16px;
+            }
+
+            .login-card {
+                padding: 42px 25px;
+            }
+
+            .brand h1 {
+                font-size: 29px;
+            }
+
+            .field input {
+                height: 60px;
+            }
+        }
     </style>
 </head>
 
-<body class="login-bg text-ivory font-cairo antialiased min-h-screen flex items-center justify-center p-4">
+<body>
 
-    <div id="toast-container" class="fixed top-5 left-5 z-50 flex flex-col gap-3 pointer-events-none"></div>
+    <main class="login-card">
 
-    <main class="max-w-sm w-full login-card p-8 rounded-lg shadow-2xl space-y-6 text-center">
-        <div class="space-y-1">
-            <h1 class="text-xl font-garamond tracking-widest login-gold font-bold">ZEROONE MARASEM</h1>
-            <p class="text-[11px] login-muted uppercase tracking-widest">لوحة تحكم الإدارة</p>
+        <div class="brand">
+            <h1>ZEROONE MARASEM</h1>
+            <p>لوحة تحكم الإدارة</p>
         </div>
 
-        <form id="login-form" class="space-y-4 text-right" novalidate>
-            <div>
-                <label for="login-email" class="block text-xs font-medium login-muted mb-1">البريد الإلكتروني</label>
+        <form id="loginForm" novalidate>
+
+            <div class="field">
+                <label for="email">البريد الإلكتروني</label>
+
                 <input
-                    type="email"
-                    id="login-email"
+                    id="email"
                     name="email"
+                    type="email"
                     autocomplete="username"
+                    placeholder="البريد الإلكتروني"
                     required
-                    class="login-input"
                 >
             </div>
 
-            <div>
-                <label for="login-password" class="block text-xs font-medium login-muted mb-1">كلمة المرور</label>
+            <div class="field">
+                <label for="password">كلمة المرور</label>
+
                 <input
-                    type="password"
-                    id="login-password"
+                    id="password"
                     name="password"
+                    type="password"
                     autocomplete="current-password"
+                    placeholder="كلمة المرور"
                     required
-                    class="login-input"
                 >
             </div>
 
-            <p id="login-error" class="hidden text-xs login-error" role="alert" aria-live="polite"></p>
-
-            <button id="login-btn" type="submit" class="login-button">
+            <button
+                id="loginButton"
+                class="login-button"
+                type="submit"
+            >
                 تسجيل الدخول
             </button>
+
+            <div id="message" class="message"></div>
+
         </form>
+
+        <div class="footer">
+            ZEROONE — Digital Experiences
+        </div>
+
     </main>
 
-    <!-- Authentication logic is external to comply with the CSP. -->
-    <script type="module" src="./js/login.js?v=1.2.0"></script>
+    <script type="module" src="./js/login.js"></script>
+
 </body>
-</html>
+</html> 
