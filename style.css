@@ -1,0 +1,109 @@
+/* ZEROONE MARASEM — Custom Quiet Luxury Design Tokens & Animations */
+
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+:root {
+    --ivory: #F7F3EA;
+    --warm-ivory: #EEE8DC;
+    --espresso: #211C17;
+    --taupe: #8D8272;
+    --muted-gold: #B89B5E;
+}
+
+body {
+    background-color: var(--ivory);
+    color: var(--espresso);
+    font-family: 'Cairo', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.font-garamond {
+    font-family: 'Cormorant Garamond', serif;
+}
+
+/* Tab Navigation Active State */
+.nav-tab.active-tab {
+    background-color: var(--espresso);
+    color: var(--ivory);
+}
+
+.nav-tab:not(.active-tab) {
+    color: var(--taupe);
+}
+
+.nav-tab:not(.active-tab):hover {
+    color: var(--espresso);
+    background-color: rgba(141, 130, 114, 0.1);
+}
+
+/* Toast Animations */
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.toast-item {
+    animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Smooth Transitions */
+.tab-content {
+    transition: opacity 0.25s ease-in-out;
+}
+
+/* Mobile responsive fixes */
+@media (max-width: 640px) {
+    input, select, button {
+        font-size: 14px !important;
+    }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--ivory);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--taupe);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-gold);
+}
+
+/* Validation error state on inputs */
+.field-error-border {
+    border-color: #DC2626 !important;
+}
+
+/* Mobile: keep tap targets comfortably large across the app */
+@media (max-width: 640px) {
+    button, a.inline-block, .nav-tab {
+        min-height: 40px;
+    }
+}
+
+/* QR scanner viewport */
+#qr-reader video {
+    border-radius: 0.5rem;
+    width: 100% !important;
+}
+#qr-reader {
+    min-height: 220px;
+    background: var(--warm-ivory);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
