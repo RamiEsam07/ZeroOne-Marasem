@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZEROONE MARASEM — دعوة خاصة</title>
+
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src https://firestore.googleapis.com; frame-src 'none'; object-src 'none';">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ivory: '#F7F3EA',
+                        'warm-ivory': '#EEE8DC',
+                        espresso: '#211C17',
+                        taupe: '#8D8272',
+                        'muted-gold': '#B89B5E'
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                        garamond: ['Cormorant Garamond', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-espresso text-ivory font-cairo antialiased min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Envelope Initial Screen -->
+    <div id="welcome-card" class="max-w-md w-full bg-espresso border border-muted-gold/30 p-8 rounded-lg shadow-2xl text-center space-y-6 relative overflow-hidden transition-all duration-700">
+        <div class="absolute inset-2 border border-muted-gold/15 pointer-events-none"></div>
+
+        <div class="space-y-2">
+            <h1 class="text-xl font-garamond tracking-widest text-muted-gold font-bold">ZEROONE MARASEM</h1>
+            <p class="text-[11px] text-taupe uppercase tracking-widest">دعوة خاصة مخصصة</p>
+        </div>
+
+        <div class="py-6 border-y border-taupe/20 space-y-2">
+            <p class="text-xs text-taupe font-garamond italic">دعوة خاصة إلى</p>
+            <h2 id="guest-name-reveal" class="text-2xl font-garamond font-bold text-ivory">
+                <i class="fa-solid fa-spinner fa-spin text-base"></i>
+            </h2>
+        </div>
+
+        <button onclick="revealInvitation()" id="btn-reveal" disabled class="w-full bg-muted-gold/50 text-espresso font-semibold py-3.5 px-6 rounded text-sm transition-all duration-300 shadow-md flex items-center justify-center gap-2 cursor-not-allowed">
+            <span>فتح دعوتك ✦</span>
+        </button>
+    </div>
+
+    <!-- Main Personalized Invitation View -->
+    <div id="invitation-details" class="hidden max-w-lg w-full bg-ivory text-espresso p-8 sm:p-10 rounded-lg border border-muted-gold/40 shadow-2xl space-y-8 relative overflow-hidden text-center my-8">
+        
+        <div class="space-y-2">
+            <div class="text-xs uppercase tracking-[0.2em] text-muted-gold font-garamond">ZEROONE MARASEM</div>
+            <div class="w-12 h-px bg-muted-gold/40 mx-auto"></div>
+        </div>
+
+        <div class="space-y-2">
+            <span id="badge-type" class="inline-block px-3 py-0.5 text-[10px] tracking-widest border border-muted-gold/40 text-muted-gold font-bold uppercase">VIP</span>
+            <p class="text-xs text-taupe font-garamond italic">السيد/السيدة <span id="guest-full-name" class="font-semibold text-espresso"></span>، يسرنا دعوتكم لحضور</p>
+            <h2 id="event-title" class="text-2xl font-garamond font-bold text-espresso">...</h2>
+        </div>
+
+        <div class="bg-warm-ivory/50 border border-taupe/15 p-6 rounded-lg space-y-4 text-sm">
+            <div>
+                <p class="text-xs text-taupe">التاريخ والوقت</p>
+                <p id="event-date-time" class="font-bold text-espresso mt-0.5">...</p>
+            </div>
+
+            <div class="pt-3 border-t border-taupe/15">
+                <p class="text-xs text-taupe">المكان</p>
+                <p id="event-venue" class="font-bold text-espresso mt-0.5">...</p>
+            </div>
+
+            <div id="table-parking-box" class="pt-3 border-t border-taupe/15 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                    <span class="text-taupe block">رقم الطاولة</span>
+                    <span id="guest-table" class="font-bold text-muted-gold">...</span>
+                </div>
+                <div>
+                    <span class="text-taupe block">رمز التأكيد الخاّص</span>
+                    <span id="confirmation-code-display" class="font-bold text-espresso tracking-wider">...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RSVP & Interactive Buttons -->
+        <div class="space-y-3">
+            <a id="btn-location" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-full border border-taupe/30 py-3 px-4 rounded text-xs text-espresso hover:bg-warm-ivory transition-colors flex items-center justify-center gap-2">
+                <i class="fa-solid fa-location-dot text-muted-gold"></i> عرض موقع المناسبة على الخريطة
+            </a>
+
+            <div id="rsvp-buttons" class="grid grid-cols-2 gap-3">
+                <button id="btn-rsvp-decline" onclick="submitRSVP('declined')" class="w-full border border-taupe/40 text-espresso font-medium py-3.5 px-4 rounded text-sm hover:bg-warm-ivory transition-all duration-300">
+                    الاعتذار عن الحضور
+                </button>
+                <button id="btn-rsvp-confirm" onclick="submitRSVP('confirmed')" class="w-full bg-espresso text-ivory font-medium py-3.5 px-4 rounded text-sm hover:bg-muted-gold hover:text-espresso transition-all duration-300">
+                    تأكيد الحضور ✦
+                </button>
+            </div>
+            <div id="rsvp-status-box" class="hidden"></div>
+        </div>
+
+        <footer class="pt-4 border-t border-taupe/15 text-[10px] text-taupe tracking-wider">
+            ZEROONE MARASEM — ALL RIGHTS RESERVED
+        </footer>
+    </div>
+
+    <!-- Firestore Script -->
+    <script type="module">
+        import { db } from "../js/firebase.js";
+        import { doc, getDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let token = null;
+        let guestData = null;
+
+        function showInvalid(message) {
+            document.getElementById('guest-name-reveal').textContent = message;
+            document.getElementById('btn-reveal').classList.add('hidden');
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            token = params.get('token');
+
+            if (!token) {
+                showInvalid('رمز الدعوة غير صالح');
+                return;
+            }
+
+            try {
+                // Secure read strictly from publicGuests
+                const docRef = doc(db, "publicGuests", token);
+                const snap = await getDoc(docRef);
+
+                if (!snap.exists()) {
+                    showInvalid('لم يتم العثور على الدعوة المطلوبة');
+                    return;
+                }
+
+                guestData = snap.data();
+                document.getElementById('guest-name-reveal').textContent = guestData.name || 'الضيف الكريم';
+
+                if (!guestData.pageViewedAt) {
+                    const batch = writeBatch(db);
+                    batch.update(doc(db, 'publicGuests', token), { pageViewedAt: serverTimestamp() });
+                    batch.update(doc(db, 'guests', token), { pageViewedAt: serverTimestamp() });
+                    batch.commit().catch(() => {});
+                }
+
+                const revealBtn = document.getElementById('btn-reveal');
+                revealBtn.disabled = false;
+                revealBtn.classList.remove('bg-muted-gold/50', 'cursor-not-allowed');
+                revealBtn.classList.add('bg-muted-gold', 'hover:bg-warm-ivory');
+            } catch (err) {
+                console.error("INVITATION LOAD ERROR:", err);
+                showInvalid('تعذر تحميل الدعوة، تحقق من الاتصال');
+            }
+        });
+
+        window.revealInvitation = async function() {
+            if (!guestData || !token) return;
+
+            document.getElementById('welcome-card').classList.add('hidden');
+            const details = document.getElementById('invitation-details');
+            details.classList.remove('hidden');
+
+            document.getElementById('badge-type').textContent = guestData.type || 'VIP';
+            document.getElementById('guest-full-name').textContent = guestData.name || 'الضيف الكريم';
+            document.getElementById('event-title').textContent = guestData.eventName || 'المناسبة الخاصة';
+            document.getElementById('event-date-time').textContent = `${guestData.eventDate || ''} — ${guestData.eventTime || ''}`;
+            document.getElementById('event-venue').textContent = guestData.venue || '';
+
+            document.getElementById('guest-table').textContent = guestData.table || 'حسب التوجيه';
+            document.getElementById('confirmation-code-display').textContent = guestData.confirmationCode || 'ZM-──────';
+
+            if (guestData.locationUrl) {
+                const mapBtn = document.getElementById('btn-location');
+                mapBtn.href = guestData.locationUrl;
+                mapBtn.classList.remove('hidden');
+            }
+
+            renderRsvpState();
+
+            if (!guestData.opened) {
+                try {
+                    const batch = writeBatch(db);
+                    batch.update(doc(db, 'publicGuests', token), { opened: true, openedAt: serverTimestamp() });
+                    batch.update(doc(db, 'guests', token), { opened: true, openedAt: serverTimestamp() });
+                    await batch.commit();
+                    guestData.opened = true;
+                } catch (err) {
+                    console.error('Failed to record open event:', err);
+                }
+            }
+        };
+
+        function renderRsvpState() {
+            const buttons = document.getElementById('rsvp-buttons');
+            const statusBox = document.getElementById('rsvp-status-box');
+
+            if (guestData.rsvpStatus === 'confirmed' || guestData.confirmed) {
+                buttons.classList.add('hidden');
+                statusBox.classList.remove('hidden');
+                statusBox.className = 'bg-emerald-900/10 border border-emerald-700/30 text-emerald-800 p-3 rounded text-center text-xs font-semibold';
+                statusBox.textContent = '✓ تم تأكيد حضوركم الكريم، ننتظركم بكل سرور';
+            } else if (guestData.rsvpStatus === 'declined') {
+                buttons.classList.add('hidden');
+                statusBox.classList.remove('hidden');
+                statusBox.className = 'bg-taupe/10 border border-taupe/30 text-taupe p-3 rounded text-center text-xs font-semibold';
+                statusBox.textContent = 'تم تسجيل اعتذاركم عن الحضور شاكرين لكم';
+            } else {
+                buttons.classList.remove('hidden');
+                statusBox.classList.add('hidden');
+            }
+        }
+
+        window.submitRSVP = async function(decision) {
+            if (!token) return;
+            const confirmBtn = document.getElementById('btn-rsvp-confirm');
+            const declineBtn = document.getElementById('btn-rsvp-decline');
+            confirmBtn.disabled = true;
+            declineBtn.disabled = true;
+
+            try {
+                const updates = decision === 'confirmed'
+                    ? { rsvpStatus: 'confirmed', confirmed: true, confirmedAt: serverTimestamp() }
+                    : { rsvpStatus: 'declined', confirmed: false };
+                const batch = writeBatch(db);
+                batch.update(doc(db, 'publicGuests', token), updates);
+                batch.update(doc(db, 'guests', token), updates);
+                await batch.commit();
+                guestData.rsvpStatus = decision;
+                guestData.confirmed = decision === 'confirmed';
+                renderRsvpState();
+            } catch (e) {
+                console.error(e);
+                alert('تعذر تسجيل الرد، يرجى إعادة المحاولة');
+                confirmBtn.disabled = false;
+                declineBtn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
+
+ 
