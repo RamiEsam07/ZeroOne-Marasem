@@ -68,7 +68,9 @@
             </nav>
 
             <div class="hidden lg:flex items-center gap-3">
-                <span id="admin-name-label" class="text-xs text-taupe tracking-wider font-garamond"></span>
+                <button id="demo-mode-btn" type="button" onclick="openDemoMode()" title="عرض تجربة MARASEM" class="header-tool-btn"><i class="fa-solid fa-wand-magic-sparkles"></i><span>تجربة العرض</span></button>
+                <button id="theme-toggle" type="button" onclick="toggleTheme()" title="الوضع الليلي" class="theme-toggle" aria-label="تبديل الوضع"><i id="theme-toggle-icon" class="fa-solid fa-moon"></i></button>
+                <span id="admin-name-label" class="text-xs text-taupe tracking-wider font-garamond px-2"></span>
                 <button onclick="handleLogout()" title="تسجيل الخروج" class="text-taupe hover:text-rose-700 transition-colors">
                     <i class="fa-solid fa-arrow-right-from-bracket"></i>
                 </button>
@@ -81,6 +83,8 @@
             <button data-requires="delivery" onclick="switchTab('delivery')" id="mobile-tab-btn-delivery" class="text-xs py-1.5 px-2.5 rounded text-taupe">التسليم</button>
             <button data-requires="checkin" onclick="switchTab('checkin')" id="mobile-tab-btn-checkin" class="text-xs py-1.5 px-2.5 rounded text-taupe">الوصول</button>
             <button data-requires="analytics" onclick="switchTab('analytics')" id="mobile-tab-btn-analytics" class="text-xs py-1.5 px-2.5 rounded text-taupe">التحليلات</button>
+            <button onclick="openDemoMode()" class="text-xs py-1.5 px-2 rounded text-muted-gold" title="تجربة العرض"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+            <button id="mobile-theme-toggle" onclick="toggleTheme()" class="text-xs py-1.5 px-2 rounded text-taupe" title="الوضع الليلي"><i id="mobile-theme-toggle-icon" class="fa-solid fa-moon"></i></button>
             <button onclick="handleLogout()" class="text-xs py-1.5 px-2 rounded text-rose-700"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
         </div>
     </header>
@@ -456,12 +460,12 @@
                     </div>
 
                     <div class="bg-ivory p-6 border border-taupe/20 rounded space-y-3">
-                        <h4 class="text-xs uppercase font-semibold text-muted-gold tracking-wider">حالة النظام والبيئة</h4>
+                        <h4 class="text-xs uppercase font-semibold text-muted-gold tracking-wider">جاهزية المنصة</h4>
                         <div class="text-xs space-y-2 text-taupe">
-                            <p class="flex items-center gap-2"><i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i> Firebase Firestore: متصل</p>
-                            <p class="flex items-center gap-2"><i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i> Public Projection (/publicGuests): نشط</p>
-                            <p class="flex items-center gap-2"><i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i> WhatsApp Deep Link Engine: جاهز</p>
-                            <p class="text-[10px] text-taupe/80 pt-2 border-t border-taupe/10">ZEROONE MARASEM V1.4.0</p>
+                            <p class="flex items-center gap-2"><i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i> قاعدة البيانات: متصلة</p>
+                            <p class="flex items-center gap-2"><i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i> صفحات الدعوات: جاهزة</p>
+                            <p class="flex items-center gap-2"><i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i> التسليم عبر WhatsApp: جاهز</p>
+                            <p class="text-[10px] text-taupe/80 pt-2 border-t border-taupe/10">ZEROONE MARASEM · MASTER BUILD 1.6.0</p>
                         </div>
                     </div>
                 </div>
@@ -478,13 +482,15 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
-    <script src="js/utils.js?v=1.4.0"></script>
-    <script src="js/qr.js?v=1.4.0"></script>
-    <script src="js/analytics.js?v=1.4.0"></script>
-    <script src="js/auth.js?v=1.4.0" type="module"></script>
-    <script src="js/guests.js?v=1.4.0" type="module"></script>
-    <script src="js/delivery.js?v=1.4.0" type="module"></script>
-    <script src="js/checkin.js?v=1.4.0" type="module"></script>
-    <script src="js/app.js?v=1.4.0"></script>
+    <script src="js/utils.js?v=1.6.0"></script>
+    <script src="js/qr.js?v=1.6.0"></script>
+    <script src="js/analytics.js?v=1.6.0"></script>
+    <script src="js/auth.js?v=1.6.0" type="module"></script>
+    <script src="js/guests.js?v=1.6.0" type="module"></script>
+    <script src="js/delivery.js?v=1.6.0" type="module"></script>
+    <script src="js/checkin.js?v=1.6.0" type="module"></script>
+    <script src="js/theme.js?v=1.6.0"></script>
+    <script src="js/demo.js?v=1.6.0"></script>
+    <script src="js/app.js?v=1.6.0"></script>
 </body>
 </html>
