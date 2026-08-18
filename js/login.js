@@ -328,8 +328,9 @@ if (!form || !emailInput || !passwordInput || !loginButton || !message) {
 
             setTimeout(() => {
 
-                window.location.href =
-                    "./index.html";
+                window.location.replace(
+                    "./index.html"
+                );
 
             }, 700);
 
