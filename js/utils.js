@@ -53,7 +53,7 @@ function generateInvitationToken() {
 
 function generateInvitationUrl(token) {
     const base = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
-    return `${base}invitations/invitation.html?token=${encodeURIComponent(token)}`;
+    return `${base}invitation/invitation.html?token=${encodeURIComponent(token)}`;
 }
 
 function debounce(fn, delay = 300) {
